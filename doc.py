@@ -267,7 +267,7 @@ def get_creds():
                     "token_uri": os.getenv('GOOGLE_TOKEN_URI', 'https://oauth2.googleapis.com/token'),
                     "auth_provider_x509_cert_url": os.getenv('GOOGLE_AUTH_PROVIDER_CERT_URL', 'https://www.googleapis.com/oauth2/v1/certs'),
                     "client_secret": os.getenv('GOOGLE_CLIENT_SECRET'),
-                    "redirect_uris": os.getenv('RAILWAY_REDIRECT_URI')
+                    "redirect_uris": [get_redirect_uri()]
                 }
             }, SCOPES)
             creds = flow.run_local_server(port=0)
@@ -409,44 +409,55 @@ def share_google_doc(drive_service, document_id):
     ).execute()
     logging.info(f"Document shared: https://docs.google.com/document/d/{document_id}/edit")
 
-def main():
-    # Step 1: Get credentials and initialize the Drive and Docs services
-    creds = get_creds()
-    drive_service = build('drive', 'v3', credentials=creds)
-    docs_service = build('docs', 'v1', credentials=creds)
 
-    # Step 2: Load the JSON file with links
-    with open('links.json', 'r') as json_file:
-        links_data = json.load(json_file)
+# Route to generate Google Doc
+@app.route("/generate-doc", methods=["POST"])
+def generate_doc():
+    try:
+        # Step 1: Get credentials and initialize the Drive and Docs services
+        creds = get_creds()
+        drive_service = build('drive', 'v3', credentials=creds)
+        docs_service = build('docs', 'v1', credentials=creds)
 
-    tag_to_link = {
-        '{xoom_residential}': links_data['shop_links'][2],
-        '{id_seal}': links_data['shop_links'][3],
-        '{impact_residential}': links_data['shop_links'][4],
-        '{truvvi_lifestyle}': links_data['shop_links'][1],
-        '{directv_residential}': links_data['shop_links'][6],
-        # Add remaining tags here...
-    }
+        # Step 2: Load the JSON file with links
+        with open('links.json', 'r') as json_file:
+            links_data = json.load(json_file)
 
-    # IBO details from the JSON file
-    ibo_name = links_data['ibo_name']
-    ibo_id = links_data['ibo_id']
+        tag_to_link = {
+            '{xoom_residential}': links_data['shop_links'][2],
+            '{id_seal}': links_data['shop_links'][3],
+            '{impact_residential}': links_data['shop_links'][4],
+            '{truvvi_lifestyle}': links_data['shop_links'][1],
+            '{directv_residential}': links_data['shop_links'][6],
+            # Add remaining tags here...
+        }
 
-    # Step 3: Upload and convert the template to Google Docs format
-    template_file = 'ServiceLinkTemplate.docx'  # Replace with the path to your template file
-    document_id = upload_and_convert_to_gdoc(drive_service, template_file)
+        # IBO details from the JSON file
+        ibo_name = links_data['ibo_name']
+        ibo_id = links_data['ibo_id']
 
-    # Step 4: Replace placeholders with "Click here" text
-    replace_with_click_here(docs_service, document_id, tag_to_link)
+        # Step 3: Upload and convert the template to Google Docs format
+        template_file = 'ServiceLinkTemplate.docx'  # Replace with the path to your template file
+        document_id = upload_and_convert_to_gdoc(drive_service, template_file)
 
-    # Step 5: Apply hyperlinks and bold styling to "Click here" text
-    apply_hyperlinks(docs_service, document_id, tag_to_link)
+        # Step 4: Replace placeholders with "Click here" text
+        replace_with_click_here(docs_service, document_id, tag_to_link)
 
-    # Step 6: Replace IBO details
-    replace_ibo_details(docs_service, document_id, ibo_name, ibo_id)
+        # Step 5: Apply hyperlinks and bold styling to "Click here" text
+        apply_hyperlinks(docs_service, document_id, tag_to_link)
 
-    # Step 7: Share the Google Doc publicly
-    share_google_doc(drive_service, document_id)
+        # Step 6: Replace IBO details
+        replace_ibo_details(docs_service, document_id, ibo_name, ibo_id)
 
-if __name__ == '__main__':
-    app.run(host="0.0.0.0", port=os.getenv("PORT", 5000), debug=True)
+        # Step 7: Share the Google Doc publicly
+        share_google_doc(drive_service, document_id)
+
+        return jsonify({'message': 'Google Doc generated successfully', 'doc_url': f'https://docs.google.com/document/d/{document_id}/edit'})
+
+    except Exception as e:
+        logging.error(f"An error occurred: {e}")
+        return jsonify({'error': 'An error occurred while generating the document'}), 500
+
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
