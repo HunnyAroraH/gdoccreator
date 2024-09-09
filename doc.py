@@ -267,7 +267,7 @@ def get_creds():
                     "token_uri": os.getenv('GOOGLE_TOKEN_URI', 'https://oauth2.googleapis.com/token'),
                     "auth_provider_x509_cert_url": os.getenv('GOOGLE_AUTH_PROVIDER_CERT_URL', 'https://www.googleapis.com/oauth2/v1/certs'),
                     "client_secret": os.getenv('GOOGLE_CLIENT_SECRET'),
-                    "redirect_uris": [get_redirect_uri()]
+                    "redirect_uris": os.getenv('RAILWAY_REDIRECT_URI')
                 }
             }, SCOPES)
             creds = flow.run_local_server(port=0)
@@ -448,5 +448,5 @@ def main():
     # Step 7: Share the Google Doc publicly
     share_google_doc(drive_service, document_id)
 
-if __name__ == '__main__':
-    main()
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
