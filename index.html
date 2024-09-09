@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generate Google Doc</title>
+</head>
+<body>
+    <h1>Google Doc Generator</h1>
+    <button id="generateDoc">Generate Doc</button>
+
+    <script>
+        document.getElementById('generateDoc').addEventListener('click', function () {
+            // When the button is clicked, trigger the backend process to create the Google Doc
+            generateGoogleDoc();
+        });
+
+        function generateGoogleDoc() {
+            fetch('/create-doc', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Google Doc created: ' + data.docLink);
+                } else {
+                    alert('Error creating Google Doc.');
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        }
+    </script>
+</body>
+</html>
