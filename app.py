@@ -35,7 +35,7 @@ else:
 
 @app.before_request
 def before_request():
-    if request.url.startswith('http://'):
+    if request.headers.get('X-Forwarded-Proto', 'http') == 'http':
         url = request.url.replace('http://', 'https://', 1)
         return redirect(url, code=301)
 
