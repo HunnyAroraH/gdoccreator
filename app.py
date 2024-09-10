@@ -274,9 +274,28 @@ def create_doc():
                 links_data = json.load(json_file)
 
             tag_to_link = {
-                '{xoom_residential}': links_data['shop_links'][2],
-                # More placeholders as needed...
-            }
+            '{xoom_residential}': links_data['shop_links'][2],
+            '{id_seal}': links_data['shop_links'][3],
+            '{impact_residential}': links_data['shop_links'][4],
+            '{truvvi_lifestyle}': links_data['shop_links'][1],
+            '{directv_residential}': links_data['shop_links'][6],
+            '{dish_residential}': links_data['shop_links'][7],
+            '{flash_mobile}': links_data['shop_links'][0],
+            '{at&t_copy}': links_data['shop_links'][8],
+            '{spectrum}': links_data['shop_links'][8],
+            '{spectrum_copy}': links_data['shop_links'][9],
+            '{at&T_internet}': links_data['shop_links'][9],
+            '{frontier_internet}': links_data['shop_links'][10],
+            '{kinetic_internet}': links_data['shop_links'][11],
+            '{ziply_nternet}': links_data['shop_links'][12],
+            '{xoom_business}': links_data['shop_links'][13],
+            '{intermedia}': links_data['shop_links'][20],
+            '{impact_business}': links_data['shop_links'][14],
+            '{nmi}': links_data['shop_links'][15],
+            '{directv_business}': links_data['shop_links'][17],
+            '{business_internet}': links_data['shop_links'][18],
+            '{adp}': links_data['shop_links'][19]
+        }
 
             ibo_name = links_data['ibo_name']
             ibo_id = links_data['ibo_id']
@@ -302,31 +321,6 @@ def create_doc():
     except Exception as e:
         logging.error(f"Error creating Google Doc: {e}")
         return jsonify(success=False, message=str(e))
-    
-
-# tag_to_link = {
-#             '{xoom_residential}': links_data['shop_links'][2],
-#             '{id_seal}': links_data['shop_links'][3],
-#             '{impact_residential}': links_data['shop_links'][4],
-#             '{truvvi_lifestyle}': links_data['shop_links'][1],
-#             '{directv_residential}': links_data['shop_links'][6],
-#             '{dish_residential}': links_data['shop_links'][7],
-#             '{flash_mobile}': links_data['shop_links'][0],
-#             '{at&t_copy}': links_data['shop_links'][8],
-#             '{spectrum}': links_data['shop_links'][8],
-#             '{spectrum_copy}': links_data['shop_links'][9],
-#             '{at&T_internet}': links_data['shop_links'][9],
-#             '{frontier_internet}': links_data['shop_links'][10],
-#             '{kinetic_internet}': links_data['shop_links'][11],
-#             '{ziply_nternet}': links_data['shop_links'][12],
-#             '{xoom_business}': links_data['shop_links'][13],
-#             '{intermedia}': links_data['shop_links'][20],
-#             '{impact_business}': links_data['shop_links'][14],
-#             '{nmi}': links_data['shop_links'][15],
-#             '{directv_business}': links_data['shop_links'][17],
-#             '{business_internet}': links_data['shop_links'][18],
-#             '{adp}': links_data['shop_links'][19]
-#         }
 
 # Check and print/log the PORT environment variable
 port = os.environ.get('PORT', 5000)  # Default to 5000 if 'PORT' is not set
