@@ -36,7 +36,7 @@ else:
 # Authenticate and return credentials
 def get_creds():
     creds = None
-    token_file = '/tmp/token.json'  # Change to a directory you know is writable in your environment
+    token_file = 'token.json'
 
     if os.path.exists(token_file):
         creds = Credentials.from_authorized_user_file(token_file, SCOPES)
@@ -71,11 +71,7 @@ def get_creds():
             # Store the state in session
             session['state'] = state
 
-            print(f"Please visit this URL and authorize the app: {authorization_url}")
-
-        # Save credentials for future use
-        with open(token_file, 'w') as token:
-            token.write(creds.to_json())
+            return authorization_url  # Return the URL instead of creds
 
     return creds
 
@@ -245,14 +241,17 @@ def replace_ibo_details(docs_service, document_id, ibo_name, ibo_id):
 def create_doc():
     try:
         creds = get_creds()
-        drive_service = build('drive', 'v3', credentials=creds)
-        docs_service = build('docs', 'v1', credentials=creds)
 
-        # Load the JSON file with links
-        with open('links.json', 'r') as json_file:
-            links_data = json.load(json_file)
+        # If credentials exist and are valid, proceed with doc creation
+        if creds:
+            drive_service = build('drive', 'v3', credentials=creds)
+            docs_service = build('docs', 'v1', credentials=creds)
 
-        tag_to_link = {
+            # Load the JSON file with links
+            with open('links.json', 'r') as json_file:
+                links_data = json.load(json_file)
+
+            tag_to_link = {
             '{xoom_residential}': links_data['shop_links'][2],
             '{id_seal}': links_data['shop_links'][3],
             '{impact_residential}': links_data['shop_links'][4],
@@ -276,27 +275,33 @@ def create_doc():
             '{adp}': links_data['shop_links'][19]
         }
 
-        ibo_name = links_data['ibo_name']
-        ibo_id = links_data['ibo_id']
 
-        # Step 1: Upload and convert the template to Google Docs format
-        template_file = 'ServiceLinkTemplate.docx'
-        document_id = upload_and_convert_to_gdoc(drive_service, template_file)
+            ibo_name = links_data['ibo_name']
+            ibo_id = links_data['ibo_id']
 
-        # Step 2: Replace placeholders with "Click here" text
-        replace_with_click_here(docs_service, document_id, tag_to_link)
+            # Upload and convert the template to Google Docs format
+            template_file = 'ServiceLinkTemplate.docx'
+            document_id = upload_and_convert_to_gdoc(drive_service, template_file)
 
-        # Step 3: Apply hyperlinks and bold styling
-        apply_hyperlinks(docs_service, document_id, tag_to_link)
+            # Replace placeholders with "Click here" text
+            replace_with_click_here(docs_service, document_id, tag_to_link)
 
-        # Step 4: Replace IBO details
-        replace_ibo_details(docs_service, document_id, ibo_name, ibo_id)
+            # Apply hyperlinks and bold styling
+            apply_hyperlinks(docs_service, document_id, tag_to_link)
 
-        # Step 5: Share the Google Doc publicly
-        doc_link = share_google_doc(drive_service, document_id)
+            # Replace IBO details
+            replace_ibo_details(docs_service, document_id, ibo_name, ibo_id)
 
-        return jsonify(success=True, docLink=doc_link)
-    
+            # Share the Google Doc publicly
+            doc_link = share_google_doc(drive_service, document_id)
+
+            return jsonify(success=True, docLink=doc_link)
+        
+        # If no credentials exist, send the OAuth URL to the frontend
+        else:
+            creds = get_creds()  # Triggers the OAuth flow and returns the URL
+            return jsonify(success=False, message="Authentication required")
+
     except Exception as e:
         logging.error(f"Error creating Google Doc: {e}")
         return jsonify(success=False, message=str(e))
