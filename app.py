@@ -46,9 +46,6 @@ def get_creds():
     creds = None
     token_file = 'token.json'
 
-    if app.config['ENV'] == 'development':
-        os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
-
     if os.path.exists(token_file):
         creds = Credentials.from_authorized_user_file(token_file, SCOPES)
 
@@ -65,17 +62,18 @@ def get_creds():
                     "token_uri": os.getenv('GOOGLE_TOKEN_URI', 'https://oauth2.googleapis.com/token'),
                     "auth_provider_x509_cert_url": os.getenv('GOOGLE_AUTH_PROVIDER_CERT_URL', 'https://www.googleapis.com/oauth2/v1/certs'),
                     "client_secret": os.getenv('GOOGLE_CLIENT_SECRET'),
-                    "redirect_uris": ['https://gdoccreator-production.up.railway.app/oauth2callback']  # Force HTTPS URI here
+                    "redirect_uris": [os.getenv('RAILWAY_REDIRECT_URI')]
                 }
             }
 
             # Initiate OAuth flow with the correct redirect URI for Railway
             flow = Flow.from_client_config(client_config, SCOPES)
-            flow.redirect_uri = 'https://gdoccreator-production.up.railway.app/oauth2callback'  # Hardcode the redirect URI to HTTPS
+            flow.redirect_uri = os.getenv('RAILWAY_REDIRECT_URI')
 
-            # Generate the authorization URL for the user
+            # Generate the authorization URL for the user, with consent prompt to ensure refresh token is issued
             authorization_url, state = flow.authorization_url(
-                access_type='offline',
+                access_type='offline',  # Request offline access to get a refresh token
+                prompt='consent',  # Force consent screen to receive refresh token again
                 include_granted_scopes='true'
             )
 
