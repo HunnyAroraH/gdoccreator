@@ -61,16 +61,16 @@
     
                 // Step 2: Once scraping is successful, trigger Google Doc creation
                 const docResponse = await fetch('/create-doc', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: new URLSearchParams({
-                        iboName: formData.get('iboName'),
-                        iboNumber: formData.get('iboNumber')
-                    })
-                });
-    
+    method: 'POST',
+    headers: {
+        'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+        iboName: formData.get('iboName'),
+        iboNumber: formData.get('iboNumber')
+    })
+});
+
                 const docData = await docResponse.json();
     
                 if (docResponse.ok) {

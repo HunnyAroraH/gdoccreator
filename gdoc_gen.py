@@ -349,6 +349,7 @@ from google_auth_oauthlib.flow import Flow
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 from google.auth.transport.requests import Request
+from flask_cors import CORS
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -360,6 +361,8 @@ SCOPES = ['https://www.googleapis.com/auth/drive', 'https://www.googleapis.com/a
 
 # Set up logging for debugging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+
+CORS(app, resources={r"/*": {"origins": "*"}})
 
 token_file = 'token.json'
 logging.info("Checking for token.json")
@@ -607,6 +610,8 @@ def create_doc():
         ibo_name = request.form.get('iboName')
         ibo_number = request.form.get('iboNumber')
 
+        print(f"Received IBO Name: {ibo_name}, IBO Number: {ibo_number}")
+
         if not ibo_name or not ibo_number:
             return jsonify(success=False, message="IBO Name and IBO Number are required.")
 
@@ -614,9 +619,11 @@ def create_doc():
         json_filename = f"{ibo_number}_basicdata.json"
         if not os.path.exists(json_filename):
             return jsonify(success=False, message="No data found for this IBO")
+        
 
         with open(json_filename, 'r') as f:
             scraper_data = json.load(f)
+            print(f)
 
         if scraper_data:
             creds = get_creds()
