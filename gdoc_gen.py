@@ -592,7 +592,8 @@ def replace_ibo_details(docs_service, document_id, ibo_name, ibo_id):
 # Fetch data from the scraper API
 def fetch_scraper_data(ibo_number):
     try:
-        response = requests.get(f'http://localhost:5000/get-scraper-data?ibo_number={ibo_number}')
+        response = requests.get(f'http://localhost:5001/get-scraper-data?ibo_number={ibo_number}')
+        #
         if response.status_code == 200:
             return response.json()
         else:
@@ -607,23 +608,17 @@ def fetch_scraper_data(ibo_number):
 def create_doc():
     try:
         # Get IBO name and IBO number from form
-        ibo_name = request.form.get('iboName')
-        ibo_number = request.form.get('iboNumber')
-
-        print(f"Received IBO Name: {ibo_name}, IBO Number: {ibo_number}")
+        ibo_name = request.json.get('iboName')
+        ibo_number = request.json.get('iboNumber')
 
         if not ibo_name or not ibo_number:
             return jsonify(success=False, message="IBO Name and IBO Number are required.")
 
-        # Step 1: Read the JSON file created by the scraper
-        json_filename = f"{ibo_number}_basicdata.json"
-        if not os.path.exists(json_filename):
-            return jsonify(success=False, message="No data found for this IBO")
-        
+        # Fetch data from the scraper
+        scraper_data = fetch_scraper_data(ibo_number)
 
-        with open(json_filename, 'r') as f:
-            scraper_data = json.load(f)
-            print(f)
+        # Print the content of the JSON file received from scraper
+        print(f"Received data from scraper: {json.dumps(scraper_data, indent=4)}")
 
         if scraper_data:
             creds = get_creds()
@@ -637,7 +632,7 @@ def create_doc():
                 drive_service = build('drive', 'v3', credentials=creds)
                 docs_service = build('docs', 'v1', credentials=creds)
 
-                # Use the links from the JSON file for Google Doc placeholders
+                # Tag to link mappings
                 tag_to_link = {
                     '{xoom_residential}': scraper_data['shop_links'][2],
                     '{id_seal}': scraper_data['shop_links'][3],
@@ -669,7 +664,9 @@ def create_doc():
 
     except Exception as e:
         logging.error(f"Error creating Google Doc: {e}")
-        return jsonify(success=False, message=str(e))
+        # Ensure you're returning a JSON error response
+        return jsonify(success=False, message=str(e)), 500
+    
 
 @app.route('/reset-auth', methods=['GET'])
 def reset_auth():

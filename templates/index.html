@@ -35,58 +35,54 @@
         const docUrl = document.getElementById('docUrl');
     
         form.addEventListener('submit', async (event) => {
-            event.preventDefault();
-            const formData = new FormData(form);
-    
-            progressBar.style.display = 'block';
-            docLink.style.display = 'none';
-            progress.value = 20;
-    
-            // Step 1: Trigger the scraping process
-            const scrapeResponse = await fetch('/scrape-service-links', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    iboName: formData.get('iboName'),
-                    iboNumber: formData.get('iboNumber')
-                })
-            });
-    
-            const scrapeData = await scrapeResponse.json();
-    
-            if (scrapeResponse.ok) {
-                progress.value = 50;
-    
-                // Step 2: Once scraping is successful, trigger Google Doc creation
-                const docResponse = await fetch('/create-doc', {
-    method: 'POST',
-    headers: {
-        'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-        iboName: formData.get('iboName'),
-        iboNumber: formData.get('iboNumber')
-    })
-});
+    event.preventDefault();
+    const formData = new FormData(form);
+    progressBar.style.display = 'block';
+    docLink.style.display = 'none';
+    progress.value = 20;
 
-                const docData = await docResponse.json();
-    
-                if (docResponse.ok) {
-                    progress.value = 100;
-                    docLink.style.display = 'block';
-                    docUrl.href = docData.docLink;
-                } else {
-                    alert('Error creating Google Doc: ' + docData.message);
-                }
-    
-            } else {
-                alert('Error during scraping: ' + scrapeData.message);
-            }
-    
-            progressBar.style.display = 'none';
+    try {
+        const scrapeResponse = await fetch('/scrape-service-links', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                iboName: formData.get('iboName'),
+                iboNumber: formData.get('iboNumber')
+            })
         });
+
+        if (!scrapeResponse.ok) {
+            throw new Error('Error during scraping');
+        }
+
+        const scrapeData = await scrapeResponse.json();
+        progress.value = 50;
+
+        const docResponse = await fetch('/create-doc', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                iboName: formData.get('iboName'),
+                iboNumber: formData.get('iboNumber')
+            })
+        });
+
+        if (!docResponse.ok) {
+            throw new Error('Error creating Google Doc');
+        }
+
+        const docData = await docResponse.json();
+        progress.value = 100;
+        docLink.style.display = 'block';
+        docUrl.href = docData.docLink;
+
+    } catch (error) {
+        console.error('An error occurred:', error);
+        alert(`Error: ${error.message}`);
+    }
+
+    progressBar.style.display = 'none';
+});
     </script>
 </body>
 </html>
