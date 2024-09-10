@@ -604,7 +604,7 @@ def fetch_scraper_data(ibo_number):
         return None
 
 # Route to handle Google Doc creation from the frontend
-@app.route('/create-doc', methods=['POST'])
+@app.route('/create-doc', methods=['GET', 'POST'])
 def create_doc():
     try:
         # Get IBO name and IBO number from form
