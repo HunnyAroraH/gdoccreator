@@ -2,7 +2,7 @@ import os
 import platform
 import json
 from flask_cors import CORS
-from flask import Flask, request, jsonify
+from flask import Flask, render_template, request, jsonify
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service as ChromeService
 from selenium.webdriver.common.by import By
@@ -30,11 +30,10 @@ else:
 # Set the PATH environment variable to include the directory with chromedriver
 os.environ["PATH"] += os.pathsep + os.getcwd()
 
-DATA_DIR = '../data/'  # Store generated JSON files in a common directory
-
-@app.route("/")
+# Serve the index.html file
+@app.route('/')
 def index():
-    return "Flask backend is running"
+    return render_template('index.html')
 
 def kill_processes():
     for process in psutil.process_iter(['pid', 'name']):
@@ -51,7 +50,6 @@ def fetch_service_links(ibo_number, max_retries=3):
             options.add_argument('--no-sandbox')
             options.add_argument('--disable-dev-shm-usage')
             options.add_argument('--disable-gpu')
-            options.add_argument('--disable-setuid-sandbox')
             options.binary_location = chrome_binary_path
 
             service = ChromeService(executable_path=chromedriver_path)
@@ -69,7 +67,7 @@ def fetch_service_links(ibo_number, max_retries=3):
             logger.info(f"Found {len(service_links)} service links.")
 
             # Save service links to a JSON file
-            json_filename = os.path.join(DATA_DIR, f"service_links_{ibo_number}.json")
+            json_filename = f"service_links_{ibo_number}.json"
             with open(json_filename, 'w') as f:
                 json.dump(service_links, f)
             logger.info(f"Service links saved to {json_filename}")
@@ -93,7 +91,7 @@ def fetch_service_links(ibo_number, max_retries=3):
 def fetch_shop_links(ibo_number, max_retries=3):
     try:
         # Load service links from the JSON file
-        json_filename = os.path.join(DATA_DIR, f"service_links_{ibo_number}.json")
+        json_filename = f"service_links_{ibo_number}.json"
         with open(json_filename, 'r') as f:
             service_links = json.load(f)
         
@@ -141,6 +139,7 @@ def fetch_shop_links(ibo_number, max_retries=3):
         logger.error(f"An error occurred while fetching shop links: {e}")
         return []
 
+# Handle the form submission and trigger scraping
 @app.route('/scrape-service-links', methods=['POST'])
 def scrape_service_links():
     try:
@@ -162,7 +161,7 @@ def scrape_service_links():
             return jsonify({'error': 'Failed to fetch shop links after multiple attempts'}), 500
 
         # Step 3: Save IBO basic data (name, number, shop links) into JSON file
-        basic_data_filename = os.path.join(DATA_DIR, f"{ibo_number}_basicdata.json")
+        basic_data_filename = f"{ibo_number}_basicdata.json"
         basic_data = {
             'ibo_name': ibo_name,
             'ibo_id': ibo_number,
@@ -173,12 +172,23 @@ def scrape_service_links():
             json.dump(basic_data, f)
         logger.info(f"IBO basic data saved to {basic_data_filename}")
 
-        return jsonify({'message': 'Links scraped and data saved', 'basic_data_file': basic_data_filename})
-
+        return jsonify({'message': 'Scraping complete', 'data': basic_data})
     except Exception as e:
         logger.error(f"An error occurred: {e}")
         return jsonify({'error': 'An error occurred'}), 500
 
+# New API to serve scraper data
+@app.route('/get-scraper-data', methods=['GET'])
+def get_scraper_data():
+    ibo_number = request.args.get('ibo_number')
+    json_filename = f"{ibo_number}_basicdata.json"
+    
+    if os.path.exists(json_filename):
+        with open(json_filename, 'r') as f:
+            data = json.load(f)
+        return jsonify(data)
+    else:
+        return jsonify({'error': 'No data found for this IBO'}), 404
+
 if __name__ == '__main__':
-    os.makedirs(DATA_DIR, exist_ok=True)  # Ensure data directory exists
     app.run(host="0.0.0.0", port=os.getenv("PORT", 5001), debug=True)

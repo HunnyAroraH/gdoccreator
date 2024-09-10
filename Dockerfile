@@ -33,7 +33,7 @@ RUN echo "Logging Chrome version and paths" \
     && which google-chrome \
     && find / -name chrome 2>/dev/null
 
-# Ensure ChromeDriver is executable (if you're including it in the project)
+# Install ChromeDriver and make it executable
 COPY chromedriver /usr/local/bin/chromedriver
 RUN chmod +x /usr/local/bin/chromedriver
 
@@ -41,11 +41,11 @@ RUN chmod +x /usr/local/bin/chromedriver
 COPY requirements.txt requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the rest of the scraper application code
-COPY scraper/ .
+# Copy the rest of the application code
+COPY . .
 
-# Expose port 8001 for scraper functionality
-EXPOSE 8001
+# Expose port 8000 to the outside world
+EXPOSE 8000
 
-# Start the Flask application for scraper
-CMD ["gunicorn", "-b", "0.0.0.0:8001", "--timeout", "120", "scraper_app:app"]
+# Start the Flask applications using Gunicorn
+CMD ["gunicorn", "-b", "0.0.0.0:8000", "--timeout", "120", "app:app"]

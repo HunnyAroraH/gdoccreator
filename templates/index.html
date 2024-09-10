@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generate Google Document</title>
+</head>
+<body>
+    <h1>Generate Google Document</h1>
+
+    <form id="docForm">
+        <label for="iboName">IBO Name:</label>
+        <input type="text" id="iboName" name="iboName" required><br><br>
+
+        <label for="iboNumber">IBO Number:</label>
+        <input type="text" id="iboNumber" name="iboNumber" required><br><br>
+
+        <button type="submit">Create Google Doc</button>
+    </form>
+
+    <div id="progress-bar" style="display:none;">
+        <p>Generating Google Doc... Please wait</p>
+        <progress value="0" max="100" id="progress"></progress>
+    </div>
+
+    <div id="docLink" style="display:none;">
+        <p>Document created! Here is the link: <a href="" id="docUrl" target="_blank">Open Google Doc</a></p>
+    </div>
+
+    <script>
+        const form = document.getElementById('docForm');
+        const progressBar = document.getElementById('progress-bar');
+        const progress = document.getElementById('progress');
+        const docLink = document.getElementById('docLink');
+        const docUrl = document.getElementById('docUrl');
+
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const formData = new FormData(form);
+
+            progressBar.style.display = 'block';
+            docLink.style.display = 'none';
+            progress.value = 20;
+
+            const response = await fetch('/scrape-service-links', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    iboName: formData.get('iboName'),
+                    iboNumber: formData.get('iboNumber')
+                })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                progress.value = 100;
+                docLink.style.display = 'block';
+                docUrl.href = data.docLink;
+            } else {
+                alert('Error: ' + data.message);
+            }
+
+            progressBar.style.display = 'none';
+        });
+    </script>
+</body>
+</html>

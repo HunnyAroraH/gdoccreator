@@ -341,31 +341,41 @@
 #     app.run(debug=True, host='0.0.0.0', port=int(port))
 import os
 import logging
-import requests  # Import for calling the scraper API
-from flask import Flask, jsonify, request, session, redirect, url_for, render_template
+import json
+import requests
+from flask import Flask, jsonify, request, session, redirect, url_for
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import Flow
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 from google.auth.transport.requests import Request
-import json
 
-google_doc_app = Flask(__name__)
-google_doc_app.secret_key = os.getenv('FLASK_SECRET_KEY', 'your_secret_key')
+# Initialize Flask app
+app = Flask(__name__)
 
+app.secret_key = os.getenv('FLASK_SECRET_KEY', 'your_secret_key')
+
+# Scopes for Google Drive and Docs APIs
 SCOPES = ['https://www.googleapis.com/auth/drive', 'https://www.googleapis.com/auth/documents']
+
+# Set up logging for debugging
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+
 token_file = 'token.json'
+logging.info("Checking for token.json")
 
-@google_doc_app.route('/')
-def index():
-    return render_template('index.html')
+if os.path.exists(token_file):
+    logging.info("Found token.json, loading credentials")
+else:
+    logging.info("token.json not found, starting new OAuth flow")
 
-@google_doc_app.before_request
+@app.before_request
 def before_request():
     if request.headers.get('X-Forwarded-Proto', 'http') == 'http':
         url = request.url.replace('http://', 'https://', 1)
         return redirect(url, code=301)
 
+# Authenticate and return credentials
 def get_creds():
     creds = None
     token_file = 'token.json'
@@ -409,7 +419,8 @@ def get_creds():
 
     return creds
 
-@google_doc_app.route('/oauth2callback')
+
+@app.route('/oauth2callback')
 def oauth2callback():
     # Retrieve the state from the session
     state = session.get('state')
@@ -575,67 +586,79 @@ def replace_ibo_details(docs_service, document_id, ibo_name, ibo_id):
     except Exception as e:
         logging.error(f"Error replacing IBO details in document: {e}")
 
+# Fetch data from the scraper API
+def fetch_scraper_data(ibo_number):
+    try:
+        response = requests.get(f'http://localhost:5000/get-scraper-data?ibo_number={ibo_number}')
+        if response.status_code == 200:
+            return response.json()
+        else:
+            logging.error("Failed to fetch data from scraper")
+            return None
+    except Exception as e:
+        logging.error(f"Error fetching scraper data: {e}")
+        return None
 
-@google_doc_app.route('/create-doc', methods=['POST'])
+# Route to handle Google Doc creation from the frontend
+@app.route('/create-doc', methods=['POST'])
 def create_doc():
     try:
+        # Get IBO name and IBO number from form
         ibo_name = request.form.get('iboName')
         ibo_number = request.form.get('iboNumber')
 
         if not ibo_name or not ibo_number:
             return jsonify(success=False, message="IBO Name and IBO Number are required.")
 
-        # Call scraper service to scrape the links
-        scraper_url = 'http://localhost:5001/scrape-service-links'
-        scraper_response = requests.post(scraper_url, json={'iboName': ibo_name, 'iboNumber': ibo_number})
+        # Fetch data from the scraper
+        scraper_data = fetch_scraper_data(ibo_number)
 
-        if scraper_response.status_code != 200:
-            return jsonify(success=False, message="Failed to scrape service and shop links.")
-        
-        # Get the path to the generated JSON file with shop links
-        scraper_data = scraper_response.json()
-        json_file_path = scraper_data.get('basic_data_file')
+        if scraper_data:
+            creds = get_creds()
 
-        if not json_file_path:
-            return jsonify(success=False, message="No shop links found.")
+            # If creds is a string (OAuth URL), send it to the frontend for redirect
+            if isinstance(creds, str):
+                return jsonify(success=False, oauth_url=creds)
 
-        # Load the scraped links data
-        with open(json_file_path, 'r') as json_file:
-            links_data = json.load(json_file)
+            # If credentials exist and are valid, proceed with doc creation
+            if creds:
+                drive_service = build('drive', 'v3', credentials=creds)
+                docs_service = build('docs', 'v1', credentials=creds)
 
-        creds = get_creds()
-        if isinstance(creds, str):
-            return jsonify(success=False, oauth_url=creds)
+                tag_to_link = {
+                    '{xoom_residential}': scraper_data['shop_links'][2],
+                    '{id_seal}': scraper_data['shop_links'][3],
+                    '{impact_residential}': scraper_data['shop_links'][4],
+                    '{truvvi_lifestyle}': scraper_data['shop_links'][1],
+                    # Continue for all links
+                }
 
-        drive_service = build('drive', 'v3', credentials=creds)
-        docs_service = build('docs', 'v1', credentials=creds)
+                # Upload and convert the template to Google Docs format
+                template_file = 'ServiceLinkTemplate.docx'
+                document_id = upload_and_convert_to_gdoc(drive_service, template_file)
 
-        tag_to_link = {
-            '{xoom_residential}': links_data['shop_links'][2],
-            '{id_seal}': links_data['shop_links'][3],
-            '{impact_residential}': links_data['shop_links'][4],
-            '{truvvi_lifestyle}': links_data['shop_links'][1],
-            '{directv_residential}': links_data['shop_links'][6],
-            '{dish_residential}': links_data['shop_links'][7],
-            '{flash_mobile}': links_data['shop_links'][0]
-        }
+                # Replace placeholders with "Click here" text
+                replace_with_click_here(docs_service, document_id, tag_to_link)
 
-        template_file = 'ServiceLinkTemplate.docx'
-        document_id = upload_and_convert_to_gdoc(drive_service, template_file)
+                # Apply hyperlinks and bold styling
+                apply_hyperlinks(docs_service, document_id, tag_to_link)
 
-        replace_with_click_here(docs_service, document_id, tag_to_link)
-        apply_hyperlinks(docs_service, document_id, tag_to_link)
-        replace_ibo_details(docs_service, document_id, ibo_name, ibo_number)
+                # Replace IBO details
+                replace_ibo_details(docs_service, document_id, ibo_name, ibo_number)
 
-        doc_link = share_google_doc(drive_service, document_id)
+                # Share the Google Doc publicly
+                doc_link = share_google_doc(drive_service, document_id)
 
-        return jsonify(success=True, docLink=doc_link)
+                return jsonify(success=True, docLink=doc_link)
+
+        else:
+            return jsonify(success=False, message="Failed to fetch scraper data")
 
     except Exception as e:
         logging.error(f"Error creating Google Doc: {e}")
         return jsonify(success=False, message=str(e))
 
-@google_doc_app.route('/reset-auth', methods=['GET'])
+@app.route('/reset-auth', methods=['GET'])
 def reset_auth():
     token_file = 'token.json'
     if os.path.exists(token_file):
@@ -644,5 +667,9 @@ def reset_auth():
     else:
         return jsonify(success=False, message="No token file found to delete.")
 
+# Check and print/log the PORT environment variable
+port = os.environ.get('PORT', 5000)  # Default to 5000 if 'PORT' is not set
+print(f"Running on port: {port}")
+
 if __name__ == '__main__':
-    google_doc_app.run(debug=True, host='0.0.0.0', port=int(os.getenv("PORT", 5000)))
+    app.run(debug=True, host='0.0.0.0', port=int(port))
