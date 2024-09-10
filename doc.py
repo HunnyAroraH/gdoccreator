@@ -8,9 +8,14 @@ from googleapiclient.http import MediaFileUpload
 from google.auth.transport.requests import Request
 import json
 from google_auth_oauthlib.flow import Flow
+from flask import render_template
 
 # Initialize Flask app
 app = Flask(__name__)
+
+@app.route('/')
+def index():
+    return render_template('index.html')
 
 # Scopes for Google Drive and Docs APIs
 SCOPES = ['https://www.googleapis.com/auth/drive', 'https://www.googleapis.com/auth/documents']
