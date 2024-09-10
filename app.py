@@ -37,8 +37,8 @@ def get_creds():
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
         else:
-            # Create OAuth flow using environment variables for credentials
-            client_config = {
+            # Use the web server flow for non-interactive environments like Railway
+            flow = InstalledAppFlow.from_client_config({
                 "web": {
                     "client_id": os.getenv('GOOGLE_CLIENT_ID'),
                     "project_id": os.getenv('GOOGLE_PROJECT_ID'),
@@ -46,26 +46,12 @@ def get_creds():
                     "token_uri": os.getenv('GOOGLE_TOKEN_URI', 'https://oauth2.googleapis.com/token'),
                     "auth_provider_x509_cert_url": os.getenv('GOOGLE_AUTH_PROVIDER_CERT_URL', 'https://www.googleapis.com/oauth2/v1/certs'),
                     "client_secret": os.getenv('GOOGLE_CLIENT_SECRET'),
-                    "redirect_uris": [os.getenv('RAILWAY_REDIRECT_URI')]  # Use list format for Railway redirect URI
+                    "redirect_uris": [os.getenv('RAILWAY_REDIRECT_URI')]
                 }
-            }
-
-            # Initiate the OAuth flow for web apps
-            flow = Flow.from_client_config(client_config, SCOPES)
-            flow.redirect_uri = os.getenv('RAILWAY_REDIRECT_URI')
-
-            # Generate authorization URL and prompt user to authorize
-            authorization_url, state = flow.authorization_url(
-                access_type='offline',
-                include_granted_scopes='true'
-            )
-
-            print(f"Please visit this URL and authorize the app: {authorization_url}")
-
-            # Wait for the authorization code (this could be automated in a web setup)
-            code = input('Enter the authorization code here: ')
-            flow.fetch_token(code=code)
-            creds = flow.credentials
+            }, SCOPES)
+            
+            # Run the web server flow
+            creds = flow.run_local_server(port=0)
 
         # Save the credentials for future use
         with open(token_file, 'w') as token:
