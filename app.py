@@ -26,14 +26,21 @@ SCOPES = ['https://www.googleapis.com/auth/drive', 'https://www.googleapis.com/a
 # Set up logging for debugging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
+token_file = 'token.json'
+logging.info("Checking for token.json")
+if os.path.exists(token_file):
+    logging.info("Found token.json, loading credentials")
+else:
+    logging.info("token.json not found, starting new OAuth flow")
+
 # Authenticate and return credentials
 def get_creds():
     creds = None
-    token_file = 'token.json'
+    token_file = '/tmp/token.json'  # Change to a directory you know is writable in your environment
 
     if os.path.exists(token_file):
         creds = Credentials.from_authorized_user_file(token_file, SCOPES)
-    
+
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
@@ -47,13 +54,13 @@ def get_creds():
                     "token_uri": os.getenv('GOOGLE_TOKEN_URI', 'https://oauth2.googleapis.com/token'),
                     "auth_provider_x509_cert_url": os.getenv('GOOGLE_AUTH_PROVIDER_CERT_URL', 'https://www.googleapis.com/oauth2/v1/certs'),
                     "client_secret": os.getenv('GOOGLE_CLIENT_SECRET'),
-                    "redirect_uris": [os.getenv('RAILWAY_REDIRECT_URI')]  # Use your Railway URI here
+                    "redirect_uris": [os.getenv('RAILWAY_REDIRECT_URI')]
                 }
             }
 
             # Initiate OAuth flow with the correct redirect URI for Railway
             flow = Flow.from_client_config(client_config, SCOPES)
-            flow.redirect_uri = os.getenv('RAILWAY_REDIRECT_URI')  # Use Railway's redirect URI
+            flow.redirect_uri = os.getenv('RAILWAY_REDIRECT_URI')
 
             # Generate the authorization URL for the user
             authorization_url, state = flow.authorization_url(
@@ -65,7 +72,11 @@ def get_creds():
             session['state'] = state
 
             print(f"Please visit this URL and authorize the app: {authorization_url}")
-    
+
+        # Save credentials for future use
+        with open(token_file, 'w') as token:
+            token.write(creds.to_json())
+
     return creds
 
 @app.route('/oauth2callback')
