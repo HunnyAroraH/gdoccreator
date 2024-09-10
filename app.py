@@ -320,6 +320,15 @@ def create_doc():
         logging.error(f"Error creating Google Doc: {e}")
         return jsonify(success=False, message=str(e))
 
+@app.route('/reset-auth', methods=['GET'])
+def reset_auth():
+    token_file = 'token.json'
+    if os.path.exists(token_file):
+        os.remove(token_file)
+        return jsonify(success=True, message="Token file deleted. Please re-authenticate.")
+    else:
+        return jsonify(success=False, message="No token file found to delete.")
+
 # Check and print/log the PORT environment variable
 port = os.environ.get('PORT', 5000)  # Default to 5000 if 'PORT' is not set
 print(f"Running on port: {port}")
