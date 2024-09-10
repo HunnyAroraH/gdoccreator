@@ -9,9 +9,12 @@ from google.auth.transport.requests import Request
 import json
 from google_auth_oauthlib.flow import Flow
 from flask import render_template
+from flask import request, redirect, session, url_for
 
 # Initialize Flask app
 app = Flask(__name__)
+
+app.secret_key = os.getenv('FLASK_SECRET_KEY', 'your_secret_key')
 
 @app.route('/')
 def index():
@@ -58,13 +61,45 @@ def get_creds():
                 include_granted_scopes='true'
             )
 
-            print(f"Please visit this URL and authorize the app: {authorization_url}")
+            # Store the state in session
+            session['state'] = state
 
-            # The user will have to visit the URL and authorize
-            # You will need a way to capture the redirect back from Google
-            # For Railway, this will redirect back to the correct URI.
+            print(f"Please visit this URL and authorize the app: {authorization_url}")
     
     return creds
+
+@app.route('/oauth2callback')
+def oauth2callback():
+    # Retrieve the state from the session
+    state = session.get('state')
+
+    if not state:
+        return "Session state missing or expired", 400
+
+    flow = Flow.from_client_config({
+        "web": {
+            "client_id": os.getenv('GOOGLE_CLIENT_ID'),
+            "project_id": os.getenv('GOOGLE_PROJECT_ID'),
+            "auth_uri": os.getenv('GOOGLE_AUTH_URI'),
+            "token_uri": os.getenv('GOOGLE_TOKEN_URI'),
+            "auth_provider_x509_cert_url": os.getenv('GOOGLE_AUTH_PROVIDER_CERT_URL'),
+            "client_secret": os.getenv('GOOGLE_CLIENT_SECRET'),
+            "redirect_uris": [os.getenv('RAILWAY_REDIRECT_URI')]
+        }
+    }, SCOPES, state=state)
+
+    flow.redirect_uri = url_for('oauth2callback', _external=True)
+
+    # Exchange authorization code for credentials
+    authorization_response = request.url
+    flow.fetch_token(authorization_response=authorization_response)
+
+    # Save the credentials to token.json for future use
+    creds = flow.credentials
+    with open('token.json', 'w') as token:
+        token.write(creds.to_json())
+
+    return redirect(url_for('index'))
 
 # Upload the `.docx` file and convert it to Google Docs format
 def upload_and_convert_to_gdoc(service, template_file):
