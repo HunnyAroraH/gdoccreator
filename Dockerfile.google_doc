@@ -1,0 +1,18 @@
+# Use a lightweight official Python image
+FROM python:3.9-slim
+
+# Set the working directory
+WORKDIR /app
+
+# Copy the Google Doc Generator code
+COPY google_doc_generator/ .
+
+# Copy requirements and install Python dependencies
+COPY requirements.txt requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Expose the port
+EXPOSE 8000
+
+# Start the Flask application for Google Doc Generator
+CMD ["gunicorn", "-b", "0.0.0.0:8000", "--timeout", "120", "google_doc:app"]

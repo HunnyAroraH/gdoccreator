@@ -1,0 +1,33 @@
+{
+    "builds": [
+      {
+        "src": "./google_doc_project",
+        "use": "dockerfile",
+        "dockerfile": "./google_doc_project/Dockerfile.google_doc"
+      },
+      {
+        "src": "./scraper_project",
+        "use": "dockerfile",
+        "dockerfile": "./scraper_project/Dockerfile.scraper"
+      }
+    ],
+    "services": [
+      {
+        "name": "google-doc-service",
+        "start": "gunicorn -b 0.0.0.0:8000 --timeout 120 app:google_doc_app",
+        "build": {
+          "use": "dockerfile",
+          "dockerfile": "./google_doc_project/Dockerfile.google_doc"
+        }
+      },
+      {
+        "name": "scraper-service",
+        "start": "gunicorn -b 0.0.0.0:8001 --timeout 120 app:scraper_app",
+        "build": {
+          "use": "dockerfile",
+          "dockerfile": "./scraper_project/Dockerfile.scraper"
+        }
+      }
+    ]
+  }
+  
