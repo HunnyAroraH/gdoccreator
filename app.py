@@ -28,6 +28,9 @@ logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %
 
 token_file = 'token.json'
 logging.info("Checking for token.json")
+
+os.environ['AUTHLIB_INSECURE_TRANSPORT'] = '1'
+
 if os.path.exists(token_file):
     logging.info("Found token.json, loading credentials")
 else:
