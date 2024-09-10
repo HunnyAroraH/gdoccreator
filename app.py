@@ -33,10 +33,19 @@ if os.path.exists(token_file):
 else:
     logging.info("token.json not found, starting new OAuth flow")
 
+@app.before_request
+def before_request():
+    if request.url.startswith('http://'):
+        url = request.url.replace('http://', 'https://', 1)
+        return redirect(url, code=301)
+
 # Authenticate and return credentials
 def get_creds():
     creds = None
     token_file = 'token.json'
+
+    if app.config['ENV'] == 'development':
+        os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
 
     if os.path.exists(token_file):
         creds = Credentials.from_authorized_user_file(token_file, SCOPES)
@@ -243,7 +252,7 @@ def create_doc():
     try:
         creds = get_creds()
 
-        # If creds is a string, it means it's an OAuth URL, so return it to the frontend
+        # If creds is a string (OAuth URL), send it to the frontend for redirect
         if isinstance(creds, str):
             return jsonify(success=False, oauth_url=creds)
 
