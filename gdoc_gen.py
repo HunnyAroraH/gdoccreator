@@ -610,8 +610,13 @@ def create_doc():
         if not ibo_name or not ibo_number:
             return jsonify(success=False, message="IBO Name and IBO Number are required.")
 
-        # Fetch data from the scraper
-        scraper_data = fetch_scraper_data(ibo_number)
+        # Step 1: Read the JSON file created by the scraper
+        json_filename = f"{ibo_number}_basicdata.json"
+        if not os.path.exists(json_filename):
+            return jsonify(success=False, message="No data found for this IBO")
+
+        with open(json_filename, 'r') as f:
+            scraper_data = json.load(f)
 
         if scraper_data:
             creds = get_creds()
@@ -625,6 +630,7 @@ def create_doc():
                 drive_service = build('drive', 'v3', credentials=creds)
                 docs_service = build('docs', 'v1', credentials=creds)
 
+                # Use the links from the JSON file for Google Doc placeholders
                 tag_to_link = {
                     '{xoom_residential}': scraper_data['shop_links'][2],
                     '{id_seal}': scraper_data['shop_links'][3],

@@ -33,16 +33,17 @@
         const progress = document.getElementById('progress');
         const docLink = document.getElementById('docLink');
         const docUrl = document.getElementById('docUrl');
-
+    
         form.addEventListener('submit', async (event) => {
             event.preventDefault();
             const formData = new FormData(form);
-
+    
             progressBar.style.display = 'block';
             docLink.style.display = 'none';
             progress.value = 20;
-
-            const response = await fetch('/scrape-service-links', {
+    
+            // Step 1: Trigger the scraping process
+            const scrapeResponse = await fetch('/scrape-service-links', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -52,17 +53,38 @@
                     iboNumber: formData.get('iboNumber')
                 })
             });
-
-            const data = await response.json();
-
-            if (response.ok) {
-                progress.value = 100;
-                docLink.style.display = 'block';
-                docUrl.href = data.docLink;
+    
+            const scrapeData = await scrapeResponse.json();
+    
+            if (scrapeResponse.ok) {
+                progress.value = 50;
+    
+                // Step 2: Once scraping is successful, trigger Google Doc creation
+                const docResponse = await fetch('/create-doc', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: new URLSearchParams({
+                        iboName: formData.get('iboName'),
+                        iboNumber: formData.get('iboNumber')
+                    })
+                });
+    
+                const docData = await docResponse.json();
+    
+                if (docResponse.ok) {
+                    progress.value = 100;
+                    docLink.style.display = 'block';
+                    docUrl.href = docData.docLink;
+                } else {
+                    alert('Error creating Google Doc: ' + docData.message);
+                }
+    
             } else {
-                alert('Error: ' + data.message);
+                alert('Error during scraping: ' + scrapeData.message);
             }
-
+    
             progressBar.style.display = 'none';
         });
     </script>
