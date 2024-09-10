@@ -27,8 +27,8 @@
                     // If Google Doc is created, notify the user and show the link
                     alert('Google Doc created! You can view it here: ' + data.docLink);
                     window.open(data.docLink, '_blank'); // Open the document in a new tab
-                } else if (data.message === "Authentication required") {
-                    // Redirect the user to the authentication URL
+                } else if (data.oauth_url) {
+                    // If OAuth is required, redirect the user to the authentication URL
                     window.location.href = data.oauth_url;
                 } else {
                     alert('Error: ' + data.message);

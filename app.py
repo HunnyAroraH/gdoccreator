@@ -71,7 +71,8 @@ def get_creds():
             # Store the state in session
             session['state'] = state
 
-            return authorization_url  # Return the URL instead of creds
+            # Return the authorization URL so the frontend can redirect the user
+            return authorization_url
 
     return creds
 
@@ -242,6 +243,10 @@ def create_doc():
     try:
         creds = get_creds()
 
+        # If creds is a string, it means it's an OAuth URL, so return it to the frontend
+        if isinstance(creds, str):
+            return jsonify(success=False, oauth_url=creds)
+
         # If credentials exist and are valid, proceed with doc creation
         if creds:
             drive_service = build('drive', 'v3', credentials=creds)
@@ -252,29 +257,9 @@ def create_doc():
                 links_data = json.load(json_file)
 
             tag_to_link = {
-            '{xoom_residential}': links_data['shop_links'][2],
-            '{id_seal}': links_data['shop_links'][3],
-            '{impact_residential}': links_data['shop_links'][4],
-            '{truvvi_lifestyle}': links_data['shop_links'][1],
-            '{directv_residential}': links_data['shop_links'][6],
-            '{dish_residential}': links_data['shop_links'][7],
-            '{flash_mobile}': links_data['shop_links'][0],
-            '{at&t_copy}': links_data['shop_links'][8],
-            '{spectrum}': links_data['shop_links'][8],
-            '{spectrum_copy}': links_data['shop_links'][9],
-            '{at&T_internet}': links_data['shop_links'][9],
-            '{frontier_internet}': links_data['shop_links'][10],
-            '{kinetic_internet}': links_data['shop_links'][11],
-            '{ziply_nternet}': links_data['shop_links'][12],
-            '{xoom_business}': links_data['shop_links'][13],
-            '{intermedia}': links_data['shop_links'][20],
-            '{impact_business}': links_data['shop_links'][14],
-            '{nmi}': links_data['shop_links'][15],
-            '{directv_business}': links_data['shop_links'][17],
-            '{business_internet}': links_data['shop_links'][18],
-            '{adp}': links_data['shop_links'][19]
-        }
-
+                '{xoom_residential}': links_data['shop_links'][2],
+                # More placeholders as needed...
+            }
 
             ibo_name = links_data['ibo_name']
             ibo_id = links_data['ibo_id']
@@ -296,16 +281,35 @@ def create_doc():
             doc_link = share_google_doc(drive_service, document_id)
 
             return jsonify(success=True, docLink=doc_link)
-        
-        # If no credentials exist, send the OAuth URL to the frontend
-        else:
-            creds = get_creds()  # Triggers the OAuth flow and returns the URL
-            return jsonify(success=False, message="Authentication required")
 
     except Exception as e:
         logging.error(f"Error creating Google Doc: {e}")
         return jsonify(success=False, message=str(e))
     
+
+# tag_to_link = {
+#             '{xoom_residential}': links_data['shop_links'][2],
+#             '{id_seal}': links_data['shop_links'][3],
+#             '{impact_residential}': links_data['shop_links'][4],
+#             '{truvvi_lifestyle}': links_data['shop_links'][1],
+#             '{directv_residential}': links_data['shop_links'][6],
+#             '{dish_residential}': links_data['shop_links'][7],
+#             '{flash_mobile}': links_data['shop_links'][0],
+#             '{at&t_copy}': links_data['shop_links'][8],
+#             '{spectrum}': links_data['shop_links'][8],
+#             '{spectrum_copy}': links_data['shop_links'][9],
+#             '{at&T_internet}': links_data['shop_links'][9],
+#             '{frontier_internet}': links_data['shop_links'][10],
+#             '{kinetic_internet}': links_data['shop_links'][11],
+#             '{ziply_nternet}': links_data['shop_links'][12],
+#             '{xoom_business}': links_data['shop_links'][13],
+#             '{intermedia}': links_data['shop_links'][20],
+#             '{impact_business}': links_data['shop_links'][14],
+#             '{nmi}': links_data['shop_links'][15],
+#             '{directv_business}': links_data['shop_links'][17],
+#             '{business_internet}': links_data['shop_links'][18],
+#             '{adp}': links_data['shop_links'][19]
+#         }
 
 # Check and print/log the PORT environment variable
 port = os.environ.get('PORT', 5000)  # Default to 5000 if 'PORT' is not set
