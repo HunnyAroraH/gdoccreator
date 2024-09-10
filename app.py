@@ -261,6 +261,11 @@ def create_doc():
     except Exception as e:
         logging.error(f"Error creating Google Doc: {e}")
         return jsonify(success=False, message=str(e))
+    
+
+# Check and print/log the PORT environment variable
+port = os.environ.get('PORT', 5000)  # Default to 5000 if 'PORT' is not set
+print(f"Running on port: {port}")
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 8080)), debug=True)
+    app.run(debug=True, host='0.0.0.0', port=int(port))
