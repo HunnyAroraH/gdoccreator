@@ -65,16 +65,13 @@ def get_creds():
                     "token_uri": os.getenv('GOOGLE_TOKEN_URI', 'https://oauth2.googleapis.com/token'),
                     "auth_provider_x509_cert_url": os.getenv('GOOGLE_AUTH_PROVIDER_CERT_URL', 'https://www.googleapis.com/oauth2/v1/certs'),
                     "client_secret": os.getenv('GOOGLE_CLIENT_SECRET'),
-                    "redirect_uris": [os.getenv('RAILWAY_REDIRECT_URI')]
+                    "redirect_uris": ['https://gdoccreator-production.up.railway.app/oauth2callback']  # Force HTTPS URI here
                 }
             }
 
-            # Initiate OAuth flow with the correct redirect URI
+            # Initiate OAuth flow with the correct redirect URI for Railway
             flow = Flow.from_client_config(client_config, SCOPES)
-
-            # Always force HTTPS in production
-            if os.getenv('RAILWAY_REDIRECT_URI'):
-                flow.redirect_uri = os.getenv('RAILWAY_REDIRECT_URI').replace('http://', 'https://')
+            flow.redirect_uri = 'https://gdoccreator-production.up.railway.app/oauth2callback'  # Hardcode the redirect URI to HTTPS
 
             # Generate the authorization URL for the user
             authorization_url, state = flow.authorization_url(
@@ -89,6 +86,8 @@ def get_creds():
             return authorization_url
 
     return creds
+
+
 @app.route('/oauth2callback')
 def oauth2callback():
     # Retrieve the state from the session
@@ -109,7 +108,7 @@ def oauth2callback():
         }
     }, SCOPES, state=state)
 
-    flow.redirect_uri = url_for('oauth2callback', _external=True)
+    flow.redirect_uri = 'https://gdoccreator-production.up.railway.app/oauth2callback'
 
     # Exchange authorization code for credentials
     authorization_response = request.url
