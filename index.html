@@ -11,7 +11,6 @@
 
     <script>
         document.getElementById('generateDoc').addEventListener('click', function () {
-            // When the button is clicked, trigger the backend process to create the Google Doc
             generateGoogleDoc();
         });
 
@@ -25,12 +24,16 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    alert('Google Doc created: ' + data.docLink);
+                    alert('Google Doc created! You can view it here: ' + data.docLink);
+                    window.open(data.docLink, '_blank');
                 } else {
-                    alert('Error creating Google Doc.');
+                    alert('Error creating Google Doc: ' + data.message);
                 }
             })
-            .catch(error => console.error('Error:', error));
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An unexpected error occurred. Please try again.');
+            });
         }
     </script>
 </body>
