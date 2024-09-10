@@ -29,7 +29,6 @@ logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %
 token_file = 'token.json'
 logging.info("Checking for token.json")
 
-os.environ['AUTHLIB_INSECURE_TRANSPORT'] = '1'
 
 if os.path.exists(token_file):
     logging.info("Found token.json, loading credentials")
@@ -50,40 +49,40 @@ def get_creds():
     if app.config['ENV'] == 'development':
         os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
 
+    # Check if token.json exists and load credentials
     if os.path.exists(token_file):
         creds = Credentials.from_authorized_user_file(token_file, SCOPES)
 
+    # If credentials are invalid, refresh or start OAuth flow
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
         else:
-            # Use web-based OAuth flow with the correct redirect URI
+            # OAuth flow
             client_config = {
                 "web": {
                     "client_id": os.getenv('GOOGLE_CLIENT_ID'),
                     "project_id": os.getenv('GOOGLE_PROJECT_ID'),
-                    "auth_uri": os.getenv('GOOGLE_AUTH_URI', 'https://accounts.google.com/o/oauth2/auth'),
-                    "token_uri": os.getenv('GOOGLE_TOKEN_URI', 'https://oauth2.googleapis.com/token'),
-                    "auth_provider_x509_cert_url": os.getenv('GOOGLE_AUTH_PROVIDER_CERT_URL', 'https://www.googleapis.com/oauth2/v1/certs'),
+                    "auth_uri": os.getenv('GOOGLE_AUTH_URI'),
+                    "token_uri": os.getenv('GOOGLE_TOKEN_URI'),
+                    "auth_provider_x509_cert_url": os.getenv('GOOGLE_AUTH_PROVIDER_CERT_URL'),
                     "client_secret": os.getenv('GOOGLE_CLIENT_SECRET'),
                     "redirect_uris": [os.getenv('RAILWAY_REDIRECT_URI')]
                 }
             }
 
-            # Initiate OAuth flow with the correct redirect URI for Railway
             flow = Flow.from_client_config(client_config, SCOPES)
             flow.redirect_uri = os.getenv('RAILWAY_REDIRECT_URI')
 
-            # Generate the authorization URL for the user
+            # Generate auth URL
             authorization_url, state = flow.authorization_url(
                 access_type='offline',
                 include_granted_scopes='true'
             )
 
-            # Store the state in session
             session['state'] = state
 
-            # Return the authorization URL so the frontend can redirect the user
+            # Return the authorization URL for the user to authenticate
             return authorization_url
 
     return creds
@@ -112,14 +111,19 @@ def oauth2callback():
 
     # Exchange authorization code for credentials
     authorization_response = request.url
-    flow.fetch_token(authorization_response=authorization_response)
+    try:
+        flow.fetch_token(authorization_response=authorization_response)
+        creds = flow.credentials
 
-    # Save the credentials to token.json for future use
-    creds = flow.credentials
-    with open('token.json', 'w') as token:
-        token.write(creds.to_json())
+        # Save the credentials to token.json for future use
+        with open('token.json', 'w') as token:
+            token.write(creds.to_json())
 
-    return redirect(url_for('index'))
+        return redirect(url_for('index'))
+
+    except Exception as e:
+        logging.error(f"Error during OAuth token exchange: {e}")
+        return "Error during OAuth callback.", 500
 
 # Upload the `.docx` file and convert it to Google Docs format
 def upload_and_convert_to_gdoc(service, template_file):
