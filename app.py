@@ -418,6 +418,7 @@ def get_creds():
                 include_granted_scopes='true'
             )
 
+            print(authorization_url)
             # Store the state in session
             session['state'] = state
 
