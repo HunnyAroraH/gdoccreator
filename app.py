@@ -439,9 +439,11 @@ def get_creds():
             )
 
             print(authorization_url)
+            print("Authentication url is printed, I am printing state now (not sessions tate)")
+            print("The state is", state)
             # Store the state in session
             session['state'] = state
-            print(state)
+            print("Cool hehe now I am printing session['state']")
             print(session['state'])
             logging.debug(f"Session state set: {session['state']}")
             logging.debug(f"Session state in callback: {session.get('state')}")
@@ -457,8 +459,10 @@ def oauth2callback():
     try:
         state = session.get('state')
         incoming_state = request.args.get('state')
-        print(incoming_state)
-        print(state)
+        print("I am trying to print state and incoming state one by one")
+        print("Here is incoming state")
+        print("Incoming state is",incoming_state)
+        print("State is", state)
         logging.info(f"Incoming state: {incoming_state}")
         logging.info(f"Session state: {session.get('state')}")
 
