@@ -446,27 +446,26 @@ def get_creds():
             logging.debug(f"Session state set: {session['state']}")
             logging.debug(f"Session state in callback: {session.get('state')}")
 
+            authorization_url_with_state = f"{authorization_url}&state={state}"
+
 
             # Return the authorization URL so the frontend can redirect the user
-            return authorization_url
+            return authorization_url_with_state
 
     return creds
 
 @app.route('/oauth2callback')
 def oauth2callback():
     try:
-        state = session.get('state')
         incoming_state = request.args.get('state')
         print("I am trying to print state and incoming state one by one")
         print("Here is incoming state")
         print("Incoming state is",incoming_state)
-        print("State is", state)
         logging.info(f"Incoming state: {incoming_state}")
         logging.info(f"Session state: {session.get('state')}")
 
-        if state is None or state != incoming_state:
-            logging.error("Session state is missing or doesn't match incoming state")
-            return "Session state missing or doesn't match", 400
+        if not incoming_state:
+            return "State parameter is missing", 400
 
         # Proceed with the OAuth flow
         flow = Flow.from_client_config({
@@ -479,7 +478,7 @@ def oauth2callback():
                 "client_secret": os.getenv('GOOGLE_CLIENT_SECRET'),
                 "redirect_uris": [os.getenv('RAILWAY_REDIRECT_URI')]
             }
-        }, SCOPES, state=state)
+        }, SCOPES, state=incoming_state)
 
         flow.redirect_uri = 'https://gdoccreator-production.up.railway.app/oauth2callback'
 
