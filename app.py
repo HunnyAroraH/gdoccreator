@@ -598,16 +598,17 @@ def create_doc():
         ibo_number = request.form.get('iboNumber')
         
         # Ensure that the JSON file is sent as part of the request or the JSON data is available
-        if 'json_file' in request.files:
-            json_file = request.files['json_file']
-            ibo_data = json.load(json_file)
-        elif ibo_name and ibo_number:
-            # Assuming a file named as `service_links_{ibo_number}.json` exists in the server's directory
-            json_filename = f'service_links_{ibo_number}.json'
-            with open(json_filename, 'r') as json_file:
-                ibo_data = json.load(json_file)
+        if request.files:
+            # Get the first uploaded file (in case there's only one)
+            uploaded_file = list(request.files.values())[0]  # This dynamically gets the first file
+            ibo_data = json.load(uploaded_file)
         else:
-            return jsonify(success=False, message="Missing IBO details or JSON file.")
+            # Alternatively, if you're expecting to pull the JSON data from the body
+            ibo_data = request.get_json()  # Fallback to JSON data in the request body
+
+        # Validate the data in JSON
+        if not ibo_data or 'shop_links' not in ibo_data or not ibo_data.get('ibo_id'):
+            return jsonify(success=False, message="Invalid JSON data provided.")
 
         # Validate the data in JSON
         if not ibo_data or not 'shop_links' in ibo_data or not ibo_data.get('ibo_id'):
