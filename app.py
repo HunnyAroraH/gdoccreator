@@ -353,6 +353,10 @@ import json
 # Initialize Flask app
 app = Flask(__name__)
 app.secret_key = os.getenv('FLASK_SECRET_KEY', 'your_secret_key')
+print(app.secret_key)
+print(os.getenv('FLASK_SECRET_KEY'))
+logging.debug('app.secret_key')
+logging.debug(os.getenv('FLASK_SECRET_KEY'))
 CORS(app, resources={r"/*": {"origins": "*"}})
 
 
@@ -421,6 +425,11 @@ def get_creds():
             print(authorization_url)
             # Store the state in session
             session['state'] = state
+            print(state)
+            print(session['state'])
+            logging.debug(f"Session state set: {session['state']}")
+            logging.debug(f"Session state in callback: {session.get('state')}")
+
 
             # Return the authorization URL so the frontend can redirect the user
             return authorization_url
