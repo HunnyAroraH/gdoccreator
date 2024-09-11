@@ -450,7 +450,7 @@ def get_creds():
 
 
             # Return the authorization URL so the frontend can redirect the user
-            return authorization_url_with_state
+            return redirect(authorization_url)
 
     return creds
 
