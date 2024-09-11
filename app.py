@@ -347,11 +347,16 @@ from google_auth_oauthlib.flow import InstalledAppFlow, Flow
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 from google.auth.transport.requests import Request
+from flask_cors import CORS
 import json
 
 # Initialize Flask app
 app = Flask(__name__)
 app.secret_key = os.getenv('FLASK_SECRET_KEY', 'your_secret_key')
+CORS(app, resources={r"/*": {"origins": "*"}})
+
+
+print(os.getenv('FLASK_SECRETY_KEY'))
 
 # Scopes for Google Drive and Docs APIs
 SCOPES = ['https://www.googleapis.com/auth/drive', 'https://www.googleapis.com/auth/documents']
@@ -404,7 +409,7 @@ def get_creds():
 
             # Initiate OAuth flow with the correct redirect URI for Railway
             flow = Flow.from_client_config(client_config, SCOPES)
-            flow.redirect_uri = os.getenv('RAILWAY_REDIRECT_URI')
+            flow.redirect_uri = "https://gdoccreator-production.up.railway.app/oauth2callback"
 
             # Generate the authorization URL for the user, with consent prompt to ensure refresh token is issued
             authorization_url, state = flow.authorization_url(
@@ -426,6 +431,7 @@ def oauth2callback():
     state = session.get('state')
 
     if not state:
+        logging.error("Session state is missing or expired")
         return "Session state missing or expired", 400
 
     flow = Flow.from_client_config({
@@ -441,6 +447,9 @@ def oauth2callback():
     }, SCOPES, state=state)
 
     flow.redirect_uri = 'https://gdoccreator-production.up.railway.app/oauth2callback'
+
+    incoming_state = request.args.get('state')
+    logging.info(f"Session state: {state}, Incoming state: {incoming_state}")
 
     authorization_response = request.url
     try:
