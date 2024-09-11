@@ -375,7 +375,7 @@ def before_request():
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return "Flask Backend is running"
 
 # Authenticate and return credentials
 def get_creds():
