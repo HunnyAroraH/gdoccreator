@@ -360,8 +360,11 @@ logging.debug('app.secret_key')
 logging.debug(os.getenv('FLASK_SECRET_KEY'))
 
 app.config.update(
-    SESSION_COOKIE_SAMESITE="None",
-    SESSION_COOKIE_SECURE=True
+    SESSION_TYPE='filesystem',  # Use filesystem to store session data
+    SESSION_PERMANENT=True,
+    SESSION_COOKIE_SAMESITE="Lax",  # Consider changing to Lax if None doesn't work
+    SESSION_COOKIE_SECURE=True,
+    PERMANENT_SESSION_LIFETIME=timedelta(minutes=60)
 )
 
 CORS(app, resources={r"/*": {"origins": "*"}})
@@ -451,35 +454,34 @@ def get_creds():
 
 @app.route('/oauth2callback')
 def oauth2callback():
-    state = session.get('state')
-    incoming_state = request.args.get('state')
-    logging.info(f"Incoming state: {incoming_state}")
-    logging.info(f"Session state: {session.get('state')}")
-
-
-    if state is None or state != incoming_state:
-        logging.error("Session state is missing or doesn't match incoming state")
-        return "Session state missing or doesn't match", 400
-
-    flow = Flow.from_client_config({
-        "web": {
-            "client_id": os.getenv('GOOGLE_CLIENT_ID'),
-            "project_id": os.getenv('GOOGLE_PROJECT_ID'),
-            "auth_uri": os.getenv('GOOGLE_AUTH_URI'),
-            "token_uri": os.getenv('GOOGLE_TOKEN_URI'),
-            "auth_provider_x509_cert_url": os.getenv('GOOGLE_AUTH_PROVIDER_CERT_URL'),
-            "client_secret": os.getenv('GOOGLE_CLIENT_SECRET'),
-            "redirect_uris": [os.getenv('RAILWAY_REDIRECT_URI')]
-        }
-    }, SCOPES, state=state)
-
-    flow.redirect_uri = 'https://gdoccreator-production.up.railway.app/oauth2callback'
-
-    incoming_state = request.args.get('state')
-    logging.info(f"Session state: {state}, Incoming state: {incoming_state}")
-
-    authorization_response = request.url
     try:
+        state = session.get('state')
+        incoming_state = request.args.get('state')
+        print(incoming_state)
+        print(state)
+        logging.info(f"Incoming state: {incoming_state}")
+        logging.info(f"Session state: {session.get('state')}")
+
+        if state is None or state != incoming_state:
+            logging.error("Session state is missing or doesn't match incoming state")
+            return "Session state missing or doesn't match", 400
+
+        # Proceed with the OAuth flow
+        flow = Flow.from_client_config({
+            "web": {
+                "client_id": os.getenv('GOOGLE_CLIENT_ID'),
+                "project_id": os.getenv('GOOGLE_PROJECT_ID'),
+                "auth_uri": os.getenv('GOOGLE_AUTH_URI'),
+                "token_uri": os.getenv('GOOGLE_TOKEN_URI'),
+                "auth_provider_x509_cert_url": os.getenv('GOOGLE_AUTH_PROVIDER_CERT_URL'),
+                "client_secret": os.getenv('GOOGLE_CLIENT_SECRET'),
+                "redirect_uris": [os.getenv('RAILWAY_REDIRECT_URI')]
+            }
+        }, SCOPES, state=state)
+
+        flow.redirect_uri = 'https://gdoccreator-production.up.railway.app/oauth2callback'
+
+        authorization_response = request.url
         flow.fetch_token(authorization_response=authorization_response)
         creds = flow.credentials
 
@@ -490,8 +492,8 @@ def oauth2callback():
         return redirect(url_for('index'))
 
     except Exception as e:
-        logging.error(f"Error during OAuth token exchange: {e}")
-        return "Error during OAuth callback.", 500
+        logging.error(f"Error during OAuth callback: {e}")
+        return f"Error during OAuth callback: {str(e)}", 500
 
 # Upload the `.docx` file and convert it to Google Docs format
 def upload_and_convert_to_gdoc(service, template_file):
