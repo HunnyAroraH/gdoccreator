@@ -348,6 +348,7 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 from google.auth.transport.requests import Request
 from flask_cors import CORS
+from datetime import timedelta
 import json
 
 # Initialize Flask app
@@ -357,6 +358,12 @@ print(app.secret_key)
 print(os.getenv('FLASK_SECRET_KEY'))
 logging.debug('app.secret_key')
 logging.debug(os.getenv('FLASK_SECRET_KEY'))
+
+app.config.update(
+    SESSION_COOKIE_SAMESITE="None",
+    SESSION_COOKIE_SECURE=True
+)
+
 CORS(app, resources={r"/*": {"origins": "*"}})
 
 
@@ -381,6 +388,12 @@ def before_request():
     if request.headers.get('X-Forwarded-Proto', 'http') == 'http':
         url = request.url.replace('http://', 'https://', 1)
         return redirect(url, code=301)
+    
+app.permanent_session_lifetime = timedelta(minutes=60)
+
+@app.before_request
+def make_session_permanent():
+    session.permanent = True
 
 @app.route('/')
 def index():
@@ -439,10 +452,14 @@ def get_creds():
 @app.route('/oauth2callback')
 def oauth2callback():
     state = session.get('state')
+    incoming_state = request.args.get('state')
+    logging.info(f"Incoming state: {incoming_state}")
+    logging.info(f"Session state: {session.get('state')}")
 
-    if not state:
-        logging.error("Session state is missing or expired")
-        return "Session state missing or expired", 400
+
+    if state is None or state != incoming_state:
+        logging.error("Session state is missing or doesn't match incoming state")
+        return "Session state missing or doesn't match", 400
 
     flow = Flow.from_client_config({
         "web": {
