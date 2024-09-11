@@ -450,7 +450,7 @@ def get_creds():
 
 
             # Return the authorization URL so the frontend can redirect the user
-            return redirect(authorization_url)
+            return authorization_url
 
     return creds
 
@@ -660,13 +660,28 @@ def create_doc():
 
             # Use the shop links provided in the JSON file
             tag_to_link = {
-                '{flash_mobile}': ibo_data['shop_links'][0],
-                '{truvvi_lifestyle}': ibo_data['shop_links'][1],
-                '{xoom_residential}': ibo_data['shop_links'][2],
-                '{id_seal}': ibo_data['shop_links'][3],
-                '{impact_residential}': ibo_data['shop_links'][4],
-                # ... Add the rest of your placeholders as needed
-            }
+            '{xoom_residential}': ibo_data['shop_links'][2],
+            '{id_seal}': ibo_data['shop_links'][3],
+            '{impact_residential}': ibo_data['shop_links'][4],
+            '{truvvi_lifestyle}': ibo_data['shop_links'][1],
+            '{directv_residential}': ibo_data['shop_links'][6],
+            '{dish_residential}': ibo_data['shop_links'][7],
+            '{flash_mobile}': ibo_data['shop_links'][0],
+            '{at&t_copy}': ibo_data['shop_links'][8],
+            '{spectrum}': ibo_data['shop_links'][8],
+            '{spectrum_copy}': ibo_data['shop_links'][9],
+            '{at&T_internet}': ibo_data['shop_links'][9],
+            '{frontier_internet}': ibo_data['shop_links'][10],
+            '{kinetic_internet}': ibo_data['shop_links'][11],
+            '{ziply_nternet}': ibo_data['shop_links'][12],
+            '{xoom_business}': ibo_data['shop_links'][13],
+            '{intermedia}': ibo_data['shop_links'][20],
+            '{impact_business}': ibo_data['shop_links'][14],
+            '{nmi}': ibo_data['shop_links'][15],
+            '{directv_business}': ibo_data['shop_links'][17],
+            '{business_internet}': ibo_data['shop_links'][18],
+            '{adp}': ibo_data['shop_links'][19]
+        }
 
             # Upload and convert the template to Google Docs format
             template_file = 'ServiceLinkTemplate.docx'
