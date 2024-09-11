@@ -350,14 +350,11 @@ from google.auth.transport.requests import Request
 from flask_cors import CORS
 from datetime import timedelta
 import json
+from flask_session import Session
 
 # Initialize Flask app
 app = Flask(__name__)
 app.secret_key = os.getenv('FLASK_SECRET_KEY', 'your_secret_key')
-print(app.secret_key)
-print(os.getenv('FLASK_SECRET_KEY'))
-logging.debug('app.secret_key')
-logging.debug(os.getenv('FLASK_SECRET_KEY'))
 
 app.config.update(
     SESSION_TYPE='filesystem',  # Use filesystem to store session data
@@ -366,6 +363,7 @@ app.config.update(
     SESSION_COOKIE_SECURE=True,
     PERMANENT_SESSION_LIFETIME=timedelta(minutes=60)
 )
+Session(app)
 
 CORS(app, resources={r"/*": {"origins": "*"}})
 
