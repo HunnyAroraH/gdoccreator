@@ -585,7 +585,7 @@ def share_google_doc(drive_service, document_id):
     logging.info(f"Sharing Google Doc {document_id} publicly.")
     drive_service.permissions().create(
         fileId=document_id,
-        body={'role': 'reader', 'type': 'anyone'}
+        body={'role': 'writer', 'type': 'anyone'}
     ).execute()
     logging.info(f"Document shared: https://docs.google.com/document/d/{document_id}/edit")
     return f"https://docs.google.com/document/d/{document_id}/edit"
